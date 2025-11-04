@@ -108,7 +108,7 @@ function createIconElement(symbolId) {
   return svg;
 }
 
-function createActionButton(wrapper, modifierClass, title, symbolId, onClick) {
+function createActionButton(container, modifierClass, title, symbolId, onClick) {
   const btn = document.createElement('button');
   btn.className = `notinterested-btn ${modifierClass}`;
   btn.title = title;
@@ -118,12 +118,15 @@ function createActionButton(wrapper, modifierClass, title, symbolId, onClick) {
     event.stopPropagation();
     Promise.resolve(onClick(event)).catch((error) => console.error(error));
   });
-  wrapper.appendChild(btn);
+  container.classList.add('nqi-container');
+  container.appendChild(btn);
   return btn;
 }
 
 function addButton(anchor) {
   if (!anchor || !anchor.parentElement) return;
+
+  unwrapLegacyWrapper(anchor);
 
   if (!anchor.dataset.nqiTrackingBound) {
     const updateActiveAnchor = () => {
@@ -147,21 +150,13 @@ function addButton(anchor) {
     cleanupButtons(anchor);
     return;
   }
+  if (!container) return;
 
   ensureSpriteInjected();
 
-  let wrapper = anchor.closest('.notinterested-wrapper');
-
-  if (!wrapper) {
-    wrapper = document.createElement('div');
-    wrapper.className = 'notinterested-wrapper';
-    anchor.parentElement.insertBefore(wrapper, anchor);
-    wrapper.appendChild(anchor);
-  }
-
-  if (!wrapper.querySelector('.notinterested-btn--primary')) {
+  if (!container.querySelector('.notinterested-btn--primary')) {
     createActionButton(
-      wrapper,
+      container,
       'notinterested-btn--primary',
       'Not Interested',
       NOT_INTERESTED_SYMBOL_ID,
@@ -170,12 +165,12 @@ function addButton(anchor) {
   }
 
   const shouldShowSecondary = shouldShowDontRecommend(anchor, container);
-  const existingSecondary = wrapper.querySelector('.notinterested-btn--secondary');
+  const existingSecondary = container.querySelector('.notinterested-btn--secondary');
   if (!shouldShowSecondary && existingSecondary) {
     existingSecondary.remove();
   } else if (shouldShowSecondary && !existingSecondary) {
     createActionButton(
-      wrapper,
+      container,
       'notinterested-btn--secondary',
       "Don't recommend channel",
       DONT_RECOMMEND_SYMBOL_ID,
@@ -256,20 +251,24 @@ function shouldSkipButtons(container) {
 }
 
 function cleanupButtons(anchor) {
-  const wrapper = anchor.closest('.notinterested-wrapper');
-  if (!wrapper) return;
+  const container = getVideoContainer(anchor);
+  if (!container) return;
 
-  wrapper.querySelectorAll('.notinterested-btn').forEach((btn) => btn.remove());
-
-  if (wrapper.firstElementChild === anchor && wrapper.childElementCount === 1) {
-    const parent = wrapper.parentElement;
-    if (parent) {
-      parent.insertBefore(anchor, wrapper);
-      wrapper.remove();
-    }
-  } else if (!wrapper.querySelector('.notinterested-btn') && wrapper.childElementCount === 0) {
-    wrapper.remove();
+  container.querySelectorAll('.notinterested-btn').forEach((btn) => btn.remove());
+  if (!container.querySelector('.notinterested-btn')) {
+    container.classList.remove('nqi-container');
   }
+}
+
+function unwrapLegacyWrapper(anchor) {
+  const wrapper = anchor.parentElement && anchor.parentElement.classList.contains('notinterested-wrapper')
+    ? anchor.parentElement
+    : anchor.closest('.notinterested-wrapper');
+  if (!wrapper || !wrapper.parentElement) return;
+
+  wrapper.parentElement.insertBefore(anchor, wrapper);
+  wrapper.querySelectorAll('.notinterested-btn').forEach((btn) => btn.remove());
+  wrapper.remove();
 }
 
 function getVideoContainer(anchor) {
