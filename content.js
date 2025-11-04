@@ -1,5 +1,7 @@
 // Dismissal reason preference
 let preferredReason = 'first';
+let lastActiveAnchor = null;
+let shortcutsBound = false;
 
 function normalizeText(text) {
   return (text || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -22,6 +24,10 @@ const VIDEO_CONTAINER_SELECTORS = [
 ];
 
 const VIDEO_ANCHOR_SELECTOR = VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail`).join(', ');
+const SHORTCUT_KEYS = {
+  NOT_INTERESTED: 'KeyW',
+  DONT_RECOMMEND: 'KeyQ',
+};
 
 function isChannelPage() {
   const path = window.location.pathname || '';
@@ -92,6 +98,18 @@ function addButton(anchor) {
 
   unwrapLegacyWrapper(anchor);
 
+  if (!anchor.dataset.nqiTrackingBound) {
+    const updateActiveAnchor = () => {
+      if (anchor && document.contains(anchor)) {
+        lastActiveAnchor = anchor;
+      }
+    };
+    anchor.addEventListener('mouseenter', updateActiveAnchor);
+    anchor.addEventListener('pointerenter', updateActiveAnchor);
+    anchor.addEventListener('focus', updateActiveAnchor, true);
+    anchor.dataset.nqiTrackingBound = '1';
+  }
+
   if (isChannelPage()) {
     cleanupButtons(anchor);
     return;
@@ -115,7 +133,11 @@ function addButton(anchor) {
     );
   }
 
-  if (!container.querySelector('.notinterested-btn--secondary')) {
+  const shouldShowSecondary = shouldShowDontRecommend(anchor, container);
+  const existingSecondary = container.querySelector('.notinterested-btn--secondary');
+  if (!shouldShowSecondary && existingSecondary) {
+    existingSecondary.remove();
+  } else if (shouldShowSecondary && !existingSecondary) {
     createActionButton(
       container,
       'notinterested-btn--secondary',
@@ -154,6 +176,65 @@ function getVideoContainer(anchor) {
     if (container) return container;
   }
   return null;
+}
+
+function isEditableElement(element) {
+  if (!(element instanceof Element)) return false;
+  if (element.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""], [role="textbox"]')) {
+    return true;
+  }
+  return element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement ||
+    element.isContentEditable;
+}
+
+function getActiveAnchor() {
+  if (lastActiveAnchor && document.contains(lastActiveAnchor)) {
+    return lastActiveAnchor;
+  }
+  return null;
+}
+
+function shouldShowDontRecommend(anchor, containerOverride) {
+  const container = containerOverride || getVideoContainer(anchor);
+  if (!container) return false;
+
+  if (container.classList && container.classList.contains('yt-lockup-view-model--collection-stack-2')) {
+    return false;
+  }
+
+  if (container.querySelector('yt-collection-thumbnail-view-model, yt-collections-stack')) {
+    return false;
+  }
+
+  const href = anchor?.getAttribute?.('href') || anchor?.href || '';
+  if (href.includes('list=')) {
+    return false;
+  }
+
+  return true;
+}
+
+function handleShortcut(event) {
+  if (!event.altKey || event.ctrlKey || event.metaKey) return;
+  if (isEditableElement(event.target)) return;
+
+  const anchor = getActiveAnchor();
+  if (!anchor) return;
+
+  if (event.code === SHORTCUT_KEYS.NOT_INTERESTED) {
+    event.preventDefault();
+    event.stopPropagation();
+    Promise.resolve(handleNotInterested(anchor)).catch((error) => console.error(error));
+    return;
+  }
+
+  if (event.code === SHORTCUT_KEYS.DONT_RECOMMEND) {
+    event.preventDefault();
+    event.stopPropagation();
+    Promise.resolve(handleDontRecommend(anchor)).catch((error) => console.error(error));
+  }
 }
 
 function getMenuButton(videoContainer) {
@@ -365,6 +446,11 @@ if (document.readyState === 'loading') {
 }
 
 function init() {
+  if (!shortcutsBound) {
+    document.addEventListener('keydown', handleShortcut, true);
+    shortcutsBound = true;
+  }
+
   chrome.storage.sync.get(['dismissalReason'], (result) => {
     preferredReason = result.dismissalReason || 'first';
     console.log('Loaded preferred reason:', preferredReason);
