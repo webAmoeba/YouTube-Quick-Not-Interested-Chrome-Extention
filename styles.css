@@ -1,52 +1,51 @@
-.notinterested-wrapper {
-  position: relative !important;
-  display: block !important;
+.nqi-container {
+  position: relative;
 }
 
-.notinterested-btn {
-  position: absolute !important;
-  left: 4px !important;
-  width: 32px !important;
-  height: 32px !important;
-  background-color: rgba(0, 0, 0, 0.3) !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 50% !important;
-  cursor: pointer !important;
-  z-index: 2 !important;
-  opacity: 0 !important;
-  visibility: visible !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  pointer-events: auto !important;
-  padding: 0 !important;
-  transition: background-color 0.2s ease !important;
+.nqi-container .notinterested-btn {
+  position: absolute;
+  left: 4px;
+  width: 32px;
+  height: 32px;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 2;
+  opacity: 0;
+  visibility: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  padding: 0;
+  transition: background-color 0.2s ease;
   backdrop-filter: blur(8px);
 }
 
-.notinterested-wrapper:hover .notinterested-btn,
-.notinterested-wrapper:focus-within .notinterested-btn {
-  opacity: 1 !important;
+.nqi-container:hover .notinterested-btn,
+.nqi-container:focus-within .notinterested-btn {
+  opacity: 1;
 }
 
-.notinterested-btn:hover {
-  background-color: rgba(40, 40, 40, 0.6) !important;
+.nqi-container .notinterested-btn:hover {
+  background-color: rgba(40, 40, 40, 0.6);
 }
 
-.notinterested-btn__icon {
+.nqi-container .notinterested-btn__icon {
   width: 24px;
   height: 24px;
   fill: currentColor;
   pointer-events: none;
 }
 
-.notinterested-btn--primary {
-  top: 4px !important;
+.nqi-container .notinterested-btn--primary {
+  top: 4px;
 }
 
-.notinterested-btn--secondary {
-  top: 40px !important;
+.nqi-container .notinterested-btn--secondary {
+  top: 40px;
 }
 
 a.yt-lockup-view-model__content-image {
@@ -55,11 +54,11 @@ a.yt-lockup-view-model__content-image {
 
 html.nqi-hide-yt-menu tp-yt-iron-dropdown[role="menu"],
 html.nqi-hide-yt-menu tp-yt-iron-dropdown.ytd-popup-container {
-  opacity: 0 !important;
-  transform: none !important;
-  transition: none !important;
+  opacity: 0;
+  transform: none;
+  transition: none;
 }
 
 html.nqi-hide-yt-menu tp-yt-iron-dropdown[role="menu"] #items {
-  pointer-events: none !important;
+  pointer-events: none;
 }

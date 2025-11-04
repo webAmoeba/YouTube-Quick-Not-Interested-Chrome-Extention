@@ -1,7 +1,7 @@
 // Dismissal reason preference
 let preferredReason = 'first';
 let lastActiveAnchor = null;
-let shortcutListenerBound = false;
+let shortcutsBound = false;
 
 function normalizeText(text) {
   return (text || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -19,45 +19,15 @@ const DONT_RECOMMEND_VARIANTS = [
   'не рекомендовать этот канал',
 ];
 
-const VIDEO_ANCHOR_SELECTORS = [
-  'a.yt-lockup-view-model__content-image',
-  'ytd-rich-item-renderer a#thumbnail',
-  'ytd-video-renderer a#thumbnail',
-  'ytd-grid-video-renderer a#thumbnail',
-  'ytd-playlist-panel-video-renderer a#thumbnail',
-  'ytd-compact-video-renderer a#thumbnail',
-  'ytd-compact-radio-renderer a#thumbnail',
-  'ytd-compact-playlist-renderer a#thumbnail',
-  'ytd-compact-autoplay-renderer a#thumbnail',
-];
-
 const VIDEO_CONTAINER_SELECTORS = [
-  'ytd-rich-item-renderer',
-  'ytd-grid-video-renderer',
-  'ytd-video-renderer',
-  'ytd-playlist-panel-video-renderer',
-  'ytd-compact-video-renderer',
-  'ytd-compact-radio-renderer',
-  'ytd-compact-playlist-renderer',
-  'ytd-compact-autoplay-renderer',
-  'yt-lockup-view-model',
   '.yt-lockup-view-model',
-  '.yt-lockup-view-model--wrapper',
-  '.style-scope.ytd-item-section-renderer',
 ];
 
-const DONT_RECOMMEND_DISABLED_TAGS = new Set([
-  'ytd-compact-radio-renderer',
-  'ytd-compact-playlist-renderer',
-  'ytd-playlist-panel-video-renderer',
-]);
-
-const BUTTONLESS_CONTAINER_SELECTORS = [
-  'ytd-playlist-panel-video-renderer',
-  'ytd-playlist-panel-renderer',
-];
-
-const BUTTONLESS_CONTAINER_SELECTOR = BUTTONLESS_CONTAINER_SELECTORS.join(', ');
+const VIDEO_ANCHOR_SELECTOR = VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail`).join(', ');
+const SHORTCUT_KEYS = {
+  NOT_INTERESTED: 'KeyW',
+  DONT_RECOMMEND: 'KeyQ',
+};
 
 function isChannelPage() {
   const path = window.location.pathname || '';
@@ -108,7 +78,7 @@ function createIconElement(symbolId) {
   return svg;
 }
 
-function createActionButton(wrapper, modifierClass, title, symbolId, onClick) {
+function createActionButton(container, modifierClass, title, symbolId, onClick) {
   const btn = document.createElement('button');
   btn.className = `notinterested-btn ${modifierClass}`;
   btn.title = title;
@@ -118,12 +88,15 @@ function createActionButton(wrapper, modifierClass, title, symbolId, onClick) {
     event.stopPropagation();
     Promise.resolve(onClick(event)).catch((error) => console.error(error));
   });
-  wrapper.appendChild(btn);
+  container.classList.add('nqi-container');
+  container.appendChild(btn);
   return btn;
 }
 
 function addButton(anchor) {
   if (!anchor || !anchor.parentElement) return;
+
+  unwrapLegacyWrapper(anchor);
 
   if (!anchor.dataset.nqiTrackingBound) {
     const updateActiveAnchor = () => {
@@ -143,25 +116,16 @@ function addButton(anchor) {
   }
 
   const container = getVideoContainer(anchor);
-  if (shouldSkipButtons(container)) {
+  if (!container) {
     cleanupButtons(anchor);
     return;
   }
 
   ensureSpriteInjected();
 
-  let wrapper = anchor.closest('.notinterested-wrapper');
-
-  if (!wrapper) {
-    wrapper = document.createElement('div');
-    wrapper.className = 'notinterested-wrapper';
-    anchor.parentElement.insertBefore(wrapper, anchor);
-    wrapper.appendChild(anchor);
-  }
-
-  if (!wrapper.querySelector('.notinterested-btn--primary')) {
+  if (!container.querySelector('.notinterested-btn--primary')) {
     createActionButton(
-      wrapper,
+      container,
       'notinterested-btn--primary',
       'Not Interested',
       NOT_INTERESTED_SYMBOL_ID,
@@ -170,12 +134,12 @@ function addButton(anchor) {
   }
 
   const shouldShowSecondary = shouldShowDontRecommend(anchor, container);
-  const existingSecondary = wrapper.querySelector('.notinterested-btn--secondary');
+  const existingSecondary = container.querySelector('.notinterested-btn--secondary');
   if (!shouldShowSecondary && existingSecondary) {
     existingSecondary.remove();
   } else if (shouldShowSecondary && !existingSecondary) {
     createActionButton(
-      wrapper,
+      container,
       'notinterested-btn--secondary',
       "Don't recommend channel",
       DONT_RECOMMEND_SYMBOL_ID,
@@ -184,9 +148,32 @@ function addButton(anchor) {
   }
 }
 
-function getActiveAnchor() {
-  if (lastActiveAnchor && document.contains(lastActiveAnchor)) {
-    return lastActiveAnchor;
+function cleanupButtons(anchor) {
+  const container = getVideoContainer(anchor);
+  if (!container) return;
+
+  container.querySelectorAll('.notinterested-btn').forEach((btn) => btn.remove());
+  if (!container.querySelector('.notinterested-btn')) {
+    container.classList.remove('nqi-container');
+  }
+}
+
+function unwrapLegacyWrapper(anchor) {
+  const wrapper = anchor.parentElement && anchor.parentElement.classList.contains('notinterested-wrapper')
+    ? anchor.parentElement
+    : anchor.closest('.notinterested-wrapper');
+  if (!wrapper || !wrapper.parentElement) return;
+
+  wrapper.parentElement.insertBefore(anchor, wrapper);
+  wrapper.querySelectorAll('.notinterested-btn').forEach((btn) => btn.remove());
+  wrapper.remove();
+}
+
+function getVideoContainer(anchor) {
+  if (!anchor) return null;
+  for (const selector of VIDEO_CONTAINER_SELECTORS) {
+    const container = anchor.closest(selector);
+    if (container) return container;
   }
   return null;
 }
@@ -202,36 +189,16 @@ function isEditableElement(element) {
     element.isContentEditable;
 }
 
-function handleGlobalShortcut(event) {
-  if (!event.altKey || event.ctrlKey || event.metaKey) return;
-  if (event.code !== 'KeyQ') return;
-  if (isEditableElement(event.target)) return;
-
-  const anchor = getActiveAnchor();
-  if (!anchor) return;
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  Promise.resolve(handleNotInterested(anchor)).catch((error) => console.error(error));
+function getActiveAnchor() {
+  if (lastActiveAnchor && document.contains(lastActiveAnchor)) {
+    return lastActiveAnchor;
+  }
+  return null;
 }
 
 function shouldShowDontRecommend(anchor, containerOverride) {
   const container = containerOverride || getVideoContainer(anchor);
-  if (!container) return true;
-
-  if (shouldSkipButtons(container)) {
-    return false;
-  }
-
-  if (container.matches('ytd-compact-radio-renderer, ytd-compact-playlist-renderer')) {
-    return false;
-  }
-
-  const tagName = container.tagName ? container.tagName.toLowerCase() : '';
-  if (DONT_RECOMMEND_DISABLED_TAGS.has(tagName)) {
-    return false;
-  }
+  if (!container) return false;
 
   if (container.classList && container.classList.contains('yt-lockup-view-model--collection-stack-2')) {
     return false;
@@ -241,62 +208,33 @@ function shouldShowDontRecommend(anchor, containerOverride) {
     return false;
   }
 
+  const href = anchor?.getAttribute?.('href') || anchor?.href || '';
+  if (href.includes('list=')) {
+    return false;
+  }
+
   return true;
 }
 
-function shouldSkipButtons(container) {
-  if (!container || typeof container.matches !== 'function') return false;
-  if (container.matches(BUTTONLESS_CONTAINER_SELECTOR)) {
-    return true;
-  }
-  if (typeof container.closest === 'function' && container.closest('ytd-playlist-panel-renderer')) {
-    return true;
-  }
-  return false;
-}
+function handleShortcut(event) {
+  if (!event.altKey || event.ctrlKey || event.metaKey) return;
+  if (isEditableElement(event.target)) return;
 
-function cleanupButtons(anchor) {
-  const wrapper = anchor.closest('.notinterested-wrapper');
-  if (!wrapper) return;
+  const anchor = getActiveAnchor();
+  if (!anchor) return;
 
-  wrapper.querySelectorAll('.notinterested-btn').forEach((btn) => btn.remove());
-
-  if (wrapper.firstElementChild === anchor && wrapper.childElementCount === 1) {
-    const parent = wrapper.parentElement;
-    if (parent) {
-      parent.insertBefore(anchor, wrapper);
-      wrapper.remove();
-    }
-  } else if (!wrapper.querySelector('.notinterested-btn') && wrapper.childElementCount === 0) {
-    wrapper.remove();
-  }
-}
-
-function getVideoContainer(anchor) {
-  if (!anchor) return null;
-  for (const selector of VIDEO_CONTAINER_SELECTORS) {
-    const container = anchor.closest(selector);
-    if (container && container !== anchor) {
-      return container;
-    }
+  if (event.code === SHORTCUT_KEYS.NOT_INTERESTED) {
+    event.preventDefault();
+    event.stopPropagation();
+    Promise.resolve(handleNotInterested(anchor)).catch((error) => console.error(error));
+    return;
   }
 
-  const fallback = anchor.closest('[class*="lockup"]');
-  if (fallback && fallback !== anchor) {
-    return fallback;
+  if (event.code === SHORTCUT_KEYS.DONT_RECOMMEND) {
+    event.preventDefault();
+    event.stopPropagation();
+    Promise.resolve(handleDontRecommend(anchor)).catch((error) => console.error(error));
   }
-
-  const parent = anchor.parentElement;
-  if (!parent) return null;
-
-  for (const selector of VIDEO_CONTAINER_SELECTORS) {
-    const container = parent.closest(selector);
-    if (container && container !== anchor) {
-      return container;
-    }
-  }
-
-  return parent.parentElement || parent;
 }
 
 function getMenuButton(videoContainer) {
@@ -439,17 +377,6 @@ async function handleDontRecommend(anchor) {
   });
 }
 
-function findCancelButton() {
-  const buttons = document.querySelectorAll('button.yt-spec-button-shape-next');
-  for (const btn of buttons) {
-    const textElement = btn.querySelector('.yt-spec-button-shape-next__text span, .yt-core-attributed-string');
-    if (textElement && textElement.textContent.trim() === 'Cancel') {
-      return btn;
-    }
-  }
-  return null;
-}
-
 function findDismissalReason() {
   const reasons = document.querySelectorAll('.dismissal-view-style-compact-tall .yt-core-attributed-string');
   let selectedReason = null;
@@ -496,21 +423,17 @@ function findMenuItem(variants) {
 }
 
 function addButtonsToVideos() {
-  VIDEO_ANCHOR_SELECTORS.forEach((selector) => {
-    document.querySelectorAll(selector).forEach(addButton);
-  });
+  document.querySelectorAll(VIDEO_ANCHOR_SELECTOR).forEach(addButton);
 }
 
 const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     mutation.addedNodes.forEach((node) => {
       if (node.nodeType === Node.ELEMENT_NODE) {
-        VIDEO_ANCHOR_SELECTORS.forEach((selector) => {
-          if (node.matches(selector)) {
-            addButton(node);
-          }
-          node.querySelectorAll(selector).forEach(addButton);
-        });
+        if (node.matches(VIDEO_ANCHOR_SELECTOR)) {
+          addButton(node);
+        }
+        node.querySelectorAll(VIDEO_ANCHOR_SELECTOR).forEach(addButton);
       }
     });
   });
@@ -523,9 +446,9 @@ if (document.readyState === 'loading') {
 }
 
 function init() {
-  if (!shortcutListenerBound) {
-    document.addEventListener('keydown', handleGlobalShortcut, true);
-    shortcutListenerBound = true;
+  if (!shortcutsBound) {
+    document.addEventListener('keydown', handleShortcut, true);
+    shortcutsBound = true;
   }
 
   chrome.storage.sync.get(['dismissalReason'], (result) => {
