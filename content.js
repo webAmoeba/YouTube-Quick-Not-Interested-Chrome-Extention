@@ -21,7 +21,7 @@ const VIDEO_CONTAINER_SELECTORS = [
   '.yt-lockup-view-model',
 ];
 
-const VIDEO_ANCHOR_SELECTOR = `${VIDEO_CONTAINER_SELECTORS[0]} a.yt-lockup-view-model__content-image, ${VIDEO_CONTAINER_SELECTORS[0]} a#thumbnail`;
+const VIDEO_ANCHOR_SELECTOR = VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail`).join(', ');
 
 function isChannelPage() {
   const path = window.location.pathname || '';
@@ -115,11 +115,7 @@ function addButton(anchor) {
     );
   }
 
-  const shouldShowSecondary = shouldShowDontRecommend();
-  const existingSecondary = container.querySelector('.notinterested-btn--secondary');
-  if (!shouldShowSecondary && existingSecondary) {
-    existingSecondary.remove();
-  } else if (shouldShowSecondary && !existingSecondary) {
+  if (!container.querySelector('.notinterested-btn--secondary')) {
     createActionButton(
       container,
       'notinterested-btn--secondary',
@@ -128,10 +124,6 @@ function addButton(anchor) {
       () => handleDontRecommend(anchor),
     );
   }
-}
-
-function shouldShowDontRecommend() {
-  return true;
 }
 
 function cleanupButtons(anchor) {
@@ -157,7 +149,11 @@ function unwrapLegacyWrapper(anchor) {
 
 function getVideoContainer(anchor) {
   if (!anchor) return null;
-  return anchor.closest(VIDEO_CONTAINER_SELECTORS[0]);
+  for (const selector of VIDEO_CONTAINER_SELECTORS) {
+    const container = anchor.closest(selector);
+    if (container) return container;
+  }
+  return null;
 }
 
 function getMenuButton(videoContainer) {
