@@ -1,7 +1,5 @@
 // Dismissal reason preference
 let preferredReason = 'first';
-let lastActiveAnchor = null;
-let shortcutListenerBound = false;
 
 function normalizeText(text) {
   return (text || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -19,45 +17,11 @@ const DONT_RECOMMEND_VARIANTS = [
   'не рекомендовать этот канал',
 ];
 
-const VIDEO_ANCHOR_SELECTORS = [
-  'a.yt-lockup-view-model__content-image',
-  'ytd-rich-item-renderer a#thumbnail',
-  'ytd-video-renderer a#thumbnail',
-  'ytd-grid-video-renderer a#thumbnail',
-  'ytd-playlist-panel-video-renderer a#thumbnail',
-  'ytd-compact-video-renderer a#thumbnail',
-  'ytd-compact-radio-renderer a#thumbnail',
-  'ytd-compact-playlist-renderer a#thumbnail',
-  'ytd-compact-autoplay-renderer a#thumbnail',
-];
-
 const VIDEO_CONTAINER_SELECTORS = [
-  'ytd-rich-item-renderer',
-  'ytd-grid-video-renderer',
-  'ytd-video-renderer',
-  'ytd-playlist-panel-video-renderer',
-  'ytd-compact-video-renderer',
-  'ytd-compact-radio-renderer',
-  'ytd-compact-playlist-renderer',
-  'ytd-compact-autoplay-renderer',
-  'yt-lockup-view-model',
   '.yt-lockup-view-model',
-  '.yt-lockup-view-model--wrapper',
-  '.style-scope.ytd-item-section-renderer',
 ];
 
-const DONT_RECOMMEND_DISABLED_TAGS = new Set([
-  'ytd-compact-radio-renderer',
-  'ytd-compact-playlist-renderer',
-  'ytd-playlist-panel-video-renderer',
-]);
-
-const BUTTONLESS_CONTAINER_SELECTORS = [
-  'ytd-playlist-panel-video-renderer',
-  'ytd-playlist-panel-renderer',
-];
-
-const BUTTONLESS_CONTAINER_SELECTOR = BUTTONLESS_CONTAINER_SELECTORS.join(', ');
+const VIDEO_ANCHOR_SELECTOR = `${VIDEO_CONTAINER_SELECTORS[0]} a.yt-lockup-view-model__content-image, ${VIDEO_CONTAINER_SELECTORS[0]} a#thumbnail`;
 
 function isChannelPage() {
   const path = window.location.pathname || '';
@@ -128,29 +92,16 @@ function addButton(anchor) {
 
   unwrapLegacyWrapper(anchor);
 
-  if (!anchor.dataset.nqiTrackingBound) {
-    const updateActiveAnchor = () => {
-      if (anchor && document.contains(anchor)) {
-        lastActiveAnchor = anchor;
-      }
-    };
-    anchor.addEventListener('mouseenter', updateActiveAnchor);
-    anchor.addEventListener('pointerenter', updateActiveAnchor);
-    anchor.addEventListener('focus', updateActiveAnchor, true);
-    anchor.dataset.nqiTrackingBound = '1';
-  }
-
   if (isChannelPage()) {
     cleanupButtons(anchor);
     return;
   }
 
   const container = getVideoContainer(anchor);
-  if (shouldSkipButtons(container)) {
+  if (!container) {
     cleanupButtons(anchor);
     return;
   }
-  if (!container) return;
 
   ensureSpriteInjected();
 
@@ -164,7 +115,7 @@ function addButton(anchor) {
     );
   }
 
-  const shouldShowSecondary = shouldShowDontRecommend(anchor, container);
+  const shouldShowSecondary = shouldShowDontRecommend();
   const existingSecondary = container.querySelector('.notinterested-btn--secondary');
   if (!shouldShowSecondary && existingSecondary) {
     existingSecondary.remove();
@@ -179,75 +130,8 @@ function addButton(anchor) {
   }
 }
 
-function getActiveAnchor() {
-  if (lastActiveAnchor && document.contains(lastActiveAnchor)) {
-    return lastActiveAnchor;
-  }
-  return null;
-}
-
-function isEditableElement(element) {
-  if (!(element instanceof Element)) return false;
-  if (element.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""], [role="textbox"]')) {
-    return true;
-  }
-  return element instanceof HTMLInputElement ||
-    element instanceof HTMLTextAreaElement ||
-    element instanceof HTMLSelectElement ||
-    element.isContentEditable;
-}
-
-function handleGlobalShortcut(event) {
-  if (!event.altKey || event.ctrlKey || event.metaKey) return;
-  if (event.code !== 'KeyQ') return;
-  if (isEditableElement(event.target)) return;
-
-  const anchor = getActiveAnchor();
-  if (!anchor) return;
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  Promise.resolve(handleNotInterested(anchor)).catch((error) => console.error(error));
-}
-
-function shouldShowDontRecommend(anchor, containerOverride) {
-  const container = containerOverride || getVideoContainer(anchor);
-  if (!container) return true;
-
-  if (shouldSkipButtons(container)) {
-    return false;
-  }
-
-  if (container.matches('ytd-compact-radio-renderer, ytd-compact-playlist-renderer')) {
-    return false;
-  }
-
-  const tagName = container.tagName ? container.tagName.toLowerCase() : '';
-  if (DONT_RECOMMEND_DISABLED_TAGS.has(tagName)) {
-    return false;
-  }
-
-  if (container.classList && container.classList.contains('yt-lockup-view-model--collection-stack-2')) {
-    return false;
-  }
-
-  if (container.querySelector('yt-collection-thumbnail-view-model, yt-collections-stack')) {
-    return false;
-  }
-
+function shouldShowDontRecommend() {
   return true;
-}
-
-function shouldSkipButtons(container) {
-  if (!container || typeof container.matches !== 'function') return false;
-  if (container.matches(BUTTONLESS_CONTAINER_SELECTOR)) {
-    return true;
-  }
-  if (typeof container.closest === 'function' && container.closest('ytd-playlist-panel-renderer')) {
-    return true;
-  }
-  return false;
 }
 
 function cleanupButtons(anchor) {
@@ -273,29 +157,7 @@ function unwrapLegacyWrapper(anchor) {
 
 function getVideoContainer(anchor) {
   if (!anchor) return null;
-  for (const selector of VIDEO_CONTAINER_SELECTORS) {
-    const container = anchor.closest(selector);
-    if (container && container !== anchor) {
-      return container;
-    }
-  }
-
-  const fallback = anchor.closest('[class*="lockup"]');
-  if (fallback && fallback !== anchor) {
-    return fallback;
-  }
-
-  const parent = anchor.parentElement;
-  if (!parent) return null;
-
-  for (const selector of VIDEO_CONTAINER_SELECTORS) {
-    const container = parent.closest(selector);
-    if (container && container !== anchor) {
-      return container;
-    }
-  }
-
-  return parent.parentElement || parent;
+  return anchor.closest(VIDEO_CONTAINER_SELECTORS[0]);
 }
 
 function getMenuButton(videoContainer) {
@@ -438,17 +300,6 @@ async function handleDontRecommend(anchor) {
   });
 }
 
-function findCancelButton() {
-  const buttons = document.querySelectorAll('button.yt-spec-button-shape-next');
-  for (const btn of buttons) {
-    const textElement = btn.querySelector('.yt-spec-button-shape-next__text span, .yt-core-attributed-string');
-    if (textElement && textElement.textContent.trim() === 'Cancel') {
-      return btn;
-    }
-  }
-  return null;
-}
-
 function findDismissalReason() {
   const reasons = document.querySelectorAll('.dismissal-view-style-compact-tall .yt-core-attributed-string');
   let selectedReason = null;
@@ -495,21 +346,17 @@ function findMenuItem(variants) {
 }
 
 function addButtonsToVideos() {
-  VIDEO_ANCHOR_SELECTORS.forEach((selector) => {
-    document.querySelectorAll(selector).forEach(addButton);
-  });
+  document.querySelectorAll(VIDEO_ANCHOR_SELECTOR).forEach(addButton);
 }
 
 const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     mutation.addedNodes.forEach((node) => {
       if (node.nodeType === Node.ELEMENT_NODE) {
-        VIDEO_ANCHOR_SELECTORS.forEach((selector) => {
-          if (node.matches(selector)) {
-            addButton(node);
-          }
-          node.querySelectorAll(selector).forEach(addButton);
-        });
+        if (node.matches(VIDEO_ANCHOR_SELECTOR)) {
+          addButton(node);
+        }
+        node.querySelectorAll(VIDEO_ANCHOR_SELECTOR).forEach(addButton);
       }
     });
   });
@@ -522,11 +369,6 @@ if (document.readyState === 'loading') {
 }
 
 function init() {
-  if (!shortcutListenerBound) {
-    document.addEventListener('keydown', handleGlobalShortcut, true);
-    shortcutListenerBound = true;
-  }
-
   chrome.storage.sync.get(['dismissalReason'], (result) => {
     preferredReason = result.dismissalReason || 'first';
     console.log('Loaded preferred reason:', preferredReason);
