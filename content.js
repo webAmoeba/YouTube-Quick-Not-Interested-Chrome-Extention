@@ -59,6 +59,7 @@ function isHistoryPage() {
 const SPRITE_ELEMENT_ID = 'nqi-action-sprite';
 const NOT_INTERESTED_SYMBOL_ID = 'nqi-icon-not-interested';
 const DONT_RECOMMEND_SYMBOL_ID = 'nqi-icon-dont-recommend';
+const REMOVE_FROM_HISTORY_ID = 'nqi-icon-remove-history';
 const SPRITE_MARKUP = `
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false" id="${SPRITE_ELEMENT_ID}">
   <symbol id="${NOT_INTERESTED_SYMBOL_ID}" viewBox="0 0 24 24">
@@ -67,6 +68,9 @@ const SPRITE_MARKUP = `
   <symbol id="${DONT_RECOMMEND_SYMBOL_ID}" viewBox="0 0 24 24">
     <path d="M12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1Zm0 2a9 9 0 110 18.001A9 9 0 0112 3Zm4 8H8a1 1 0 000 2h8a1 1 0 000-2Z"></path>
   </symbol>
+
+  <symbol id="${REMOVE_FROM_HISTORY_ID}" viewBox="0 0 24 24">
+  <path d="M19 3h-4V2a1 1 0 00-1-1h-4a1 1 0 00-1 1v1H5a2 2 0 00-2 2h18a2 2 0 00-2-2ZM6 19V7H4v12a4 4 0 004 4h8a4 4 0 004-4V7h-2v12a2 2 0 01-2 2H8a2 2 0 01-2-2Zm4-11a1 1 0 00-1 1v8a1 1 0 102 0V9a1 1 0 00-1-1Zm4 0a1 1 0 00-1 1v8a1 1 0 002 0V9a1 1 0 00-1-1Z"></path></symbol>
 </svg>
 `.trim();
 
@@ -148,7 +152,7 @@ function addButton(anchor) {
         container,
         'notinterested-btn--primary',
         'Remove from history',
-        NOT_INTERESTED_SYMBOL_ID,
+        REMOVE_FROM_HISTORY_ID,
         () => handleRemoveFromHistory(anchor),
       );
     } else {
