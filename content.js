@@ -19,6 +19,12 @@ const DONT_RECOMMEND_VARIANTS = [
   'не рекомендовать этот канал',
 ];
 
+const REMOVE_FROM_HISTORY_VARIANTS = [
+  'remove from watch history',
+  'remove from history',
+  'удалить из истории просмотра',
+];
+
 const VIDEO_CONTAINER_SELECTORS = [
   '.yt-lockup-view-model',
 ];
@@ -35,6 +41,19 @@ function isChannelPage() {
     path.startsWith('/channel/') ||
     path.startsWith('/c/') ||
     path.startsWith('/user/');
+}
+
+function isHistoryPage() {
+  const path = window.location.pathname || '';
+  if (path.startsWith('/feed/history')) return true;
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    if ((params.get('list') || '').toUpperCase() === 'HL') return true;
+  } catch (_) {
+    // ignore
+  }
+  if (document.querySelector('ytd-browse[page-subtype="history"]')) return true;
+  return false;
 }
 
 const SPRITE_ELEMENT_ID = 'nqi-action-sprite';
@@ -124,13 +143,23 @@ function addButton(anchor) {
   ensureSpriteInjected();
 
   if (!container.querySelector('.notinterested-btn--primary')) {
-    createActionButton(
-      container,
-      'notinterested-btn--primary',
-      'Not Interested',
-      NOT_INTERESTED_SYMBOL_ID,
-      () => handleNotInterested(anchor),
-    );
+    if (isHistoryPage()) {
+      createActionButton(
+        container,
+        'notinterested-btn--primary',
+        'Remove from history',
+        NOT_INTERESTED_SYMBOL_ID,
+        () => handleRemoveFromHistory(anchor),
+      );
+    } else {
+      createActionButton(
+        container,
+        'notinterested-btn--primary',
+        'Not Interested',
+        NOT_INTERESTED_SYMBOL_ID,
+        () => handleNotInterested(anchor),
+      );
+    }
   }
 
   const shouldShowSecondary = shouldShowDontRecommend(anchor, container);
@@ -199,6 +228,7 @@ function getActiveAnchor() {
 function shouldShowDontRecommend(anchor, containerOverride) {
   const container = containerOverride || getVideoContainer(anchor);
   if (!container) return false;
+  if (isHistoryPage()) return false;
 
   if (container.classList && container.classList.contains('yt-lockup-view-model--collection-stack-2')) {
     return false;
@@ -226,14 +256,20 @@ function handleShortcut(event) {
   if (event.code === SHORTCUT_KEYS.NOT_INTERESTED) {
     event.preventDefault();
     event.stopPropagation();
-    Promise.resolve(handleNotInterested(anchor)).catch((error) => console.error(error));
+    if (isHistoryPage()) {
+      Promise.resolve(handleRemoveFromHistory(anchor)).catch((error) => console.error(error));
+    } else {
+      Promise.resolve(handleNotInterested(anchor)).catch((error) => console.error(error));
+    }
     return;
   }
 
   if (event.code === SHORTCUT_KEYS.DONT_RECOMMEND) {
     event.preventDefault();
     event.stopPropagation();
-    Promise.resolve(handleDontRecommend(anchor)).catch((error) => console.error(error));
+    if (!isHistoryPage()) {
+      Promise.resolve(handleDontRecommend(anchor)).catch((error) => console.error(error));
+    }
   }
 }
 
@@ -349,6 +385,10 @@ async function handleNotInterested(anchor) {
 }
 
 async function handleDontRecommend(anchor) {
+  if (!shouldShowDontRecommend(anchor)) {
+    console.log("Don't recommend is disabled for this card/page");
+    return;
+  }
   const videoContainer = getVideoContainer(anchor);
   console.log('videoContainer:', videoContainer);
   const menuBtn = getMenuButton(videoContainer);
@@ -372,6 +412,35 @@ async function handleDontRecommend(anchor) {
 
     menuItem.click();
     console.log("Don't recommend item clicked");
+
+    await closeMenu(menuBtn);
+  });
+}
+
+async function handleRemoveFromHistory(anchor) {
+  const videoContainer = getVideoContainer(anchor);
+  console.log('videoContainer:', videoContainer);
+  const menuBtn = getMenuButton(videoContainer);
+  console.log('menuBtn:', menuBtn);
+
+  if (!menuBtn) {
+    console.log('No menu button found');
+    return;
+  }
+
+  await withMenuSuppressed(async () => {
+    menuBtn.click();
+
+    const menuItem = await waitForValue(() => findMenuItem(REMOVE_FROM_HISTORY_VARIANTS));
+    console.log('removeFromHistoryItem:', menuItem);
+    if (!menuItem) {
+      console.log('No remove-from-history item found');
+      await closeMenu(menuBtn);
+      return;
+    }
+
+    menuItem.click();
+    console.log('Remove from history clicked');
 
     await closeMenu(menuBtn);
   });
