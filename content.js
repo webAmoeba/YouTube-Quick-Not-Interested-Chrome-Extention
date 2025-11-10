@@ -472,8 +472,24 @@ async function handleRemoveFromHistory(anchor) {
     menuItem.click();
     console.log('Remove from history clicked');
 
+    // Visually mark Shorts item as removed in History
+    applyShortsRemovedVisual(videoContainer);
+
     await closeMenu(menuBtn);
   });
+}
+
+function applyShortsRemovedVisual(container) {
+  try {
+    if (!isHistoryPage()) return;
+    if (!container || !container.matches || !container.matches('ytm-shorts-lockup-view-model')) return;
+    const thumb = container.querySelector('.shortsLockupViewModelHostThumbnail');
+    if (thumb) {
+      thumb.style.opacity = '0.2';
+    }
+  } catch (e) {
+    // noop
+  }
 }
 
 function findDismissalReason() {
