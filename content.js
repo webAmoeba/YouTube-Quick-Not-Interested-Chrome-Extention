@@ -27,9 +27,17 @@ const REMOVE_FROM_HISTORY_VARIANTS = [
 
 const VIDEO_CONTAINER_SELECTORS = [
   '.yt-lockup-view-model',
+  'ytm-shorts-lockup-view-model', // Shorts on home shelves
 ];
 
-const VIDEO_ANCHOR_SELECTOR = VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail`).join(', ');
+// Known clickable anchors inside supported containers
+const VIDEO_ANCHOR_SELECTOR = [
+  // Default lockup cards
+  ...VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail`),
+  // Shorts lockup
+  'ytm-shorts-lockup-view-model a.reel-item-endpoint',
+  'ytm-shorts-lockup-view-model a.shortsLockupViewModelHostEndpoint',
+].join(', ');
 const SHORTCUT_KEYS = {
   NOT_INTERESTED: 'KeyW',
   DONT_RECOMMEND: 'KeyQ',
@@ -239,6 +247,11 @@ function shouldShowDontRecommend(anchor, containerOverride) {
   }
 
   if (container.querySelector('yt-collection-thumbnail-view-model, yt-collections-stack')) {
+    return false;
+  }
+
+  // Don't show secondary action on Shorts cards
+  if (container.matches('ytm-shorts-lockup-view-model')) {
     return false;
   }
 
