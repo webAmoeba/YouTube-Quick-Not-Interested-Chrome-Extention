@@ -28,12 +28,13 @@ const REMOVE_FROM_HISTORY_VARIANTS = [
 const VIDEO_CONTAINER_SELECTORS = [
   '.yt-lockup-view-model',
   'ytm-shorts-lockup-view-model', // Shorts on home shelves
+  'ytd-video-renderer[is-history]', // Single Shorts layout in History
 ];
 
 // Known clickable anchors inside supported containers
 const VIDEO_ANCHOR_SELECTOR = [
-  // Default lockup cards
-  ...VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail, ${selector} a.yt-lockup-metadata-view-model__title`),
+  // Default lockup cards + History single-Shorts
+  ...VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail, ${selector} a.yt-lockup-metadata-view-model__title, ${selector} a#video-title`),
   // Shorts lockup
   'ytm-shorts-lockup-view-model a.reel-item-endpoint',
   'ytm-shorts-lockup-view-model a.shortsLockupViewModelHostEndpoint',
@@ -482,10 +483,11 @@ async function handleRemoveFromHistory(anchor) {
 function applyShortsRemovedVisual(container) {
   try {
     if (!isHistoryPage()) return;
-    if (!container || !container.matches || !container.matches('ytm-shorts-lockup-view-model')) return;
-    const thumb = container.querySelector('.shortsLockupViewModelHostThumbnail');
-    if (thumb) {
-      thumb.style.opacity = '0.2';
+    if (!container || !container.matches) return;
+    // Dim only Shorts lockup tiles; skip single-Shorts ytd-video-renderer variant
+    if (container.matches('ytm-shorts-lockup-view-model')) {
+      const thumb = container.querySelector('.shortsLockupViewModelHostThumbnail');
+      if (thumb) thumb.style.opacity = '0.2';
     }
   } catch (e) {
     // noop
@@ -522,16 +524,29 @@ function findSubmitButton() {
 }
 
 function findMenuItem(variants) {
-  const menuSelector = 'tp-yt-iron-dropdown:not([aria-hidden="true"]) yt-list-item-view-model[role="menuitem"]';
-  const items = document.querySelectorAll(menuSelector);
+  const dropdown = getOpenMenuDropdown();
+  if (!dropdown) return null;
+
+  const selectors = [
+    'yt-list-item-view-model[role="menuitem"]',
+    'ytd-menu-service-item-renderer[role="menuitem"]',
+    'ytd-menu-navigation-item-renderer[role="menuitem"]',
+    'ytd-menu-service-item-download-renderer[role="menuitem"]',
+    'tp-yt-paper-item[role="option"]',
+  ].join(', ');
+
+  const items = dropdown.querySelectorAll(selectors);
   const normalizedVariants = variants.map(normalizeText);
-  console.log('yt-list-item-view-model items found:', items.length);
+  console.log('menu items found:', items.length);
   for (const item of items) {
-    const titleSpan = item.querySelector('.yt-core-attributed-string');
-    const text = normalizeText(titleSpan ? titleSpan.textContent : '');
-    console.log('Item text:', text || 'No title span');
-    if (titleSpan && normalizedVariants.includes(text)) {
-      return item;
+    const textEl = item.querySelector('.yt-core-attributed-string') ||
+      item.querySelector('yt-formatted-string') ||
+      item.querySelector('.yt-spec-button-shape-next__text span') ||
+      item;
+    const text = normalizeText(textEl ? textEl.textContent : '');
+    console.log('Menu item text:', text || '(empty)');
+    if (text && normalizedVariants.includes(text)) {
+      return item.querySelector('tp-yt-paper-item') || item.querySelector('a.yt-simple-endpoint') || item;
     }
   }
   return null;
