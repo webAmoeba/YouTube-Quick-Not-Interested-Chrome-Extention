@@ -33,7 +33,7 @@ const VIDEO_CONTAINER_SELECTORS = [
 // Known clickable anchors inside supported containers
 const VIDEO_ANCHOR_SELECTOR = [
   // Default lockup cards
-  ...VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail`),
+  ...VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail, ${selector} a.yt-lockup-metadata-view-model__title`),
   // Shorts lockup
   'ytm-shorts-lockup-view-model a.reel-item-endpoint',
   'ytm-shorts-lockup-view-model a.shortsLockupViewModelHostEndpoint',
@@ -150,6 +150,19 @@ function addButton(anchor) {
   if (!container) {
     cleanupButtons(anchor);
     return;
+  }
+
+  // Ensure shortcuts work when hovering any part of the card
+  if (!container.dataset.nqiContainerTrackingBound) {
+    const updateActiveAnchor = () => {
+      if (anchor && document.contains(anchor)) {
+        lastActiveAnchor = anchor;
+      }
+    };
+    container.addEventListener('mouseenter', updateActiveAnchor);
+    container.addEventListener('pointerenter', updateActiveAnchor);
+    container.addEventListener('focusin', updateActiveAnchor);
+    container.dataset.nqiContainerTrackingBound = '1';
   }
 
   ensureSpriteInjected();
