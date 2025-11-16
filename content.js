@@ -29,12 +29,15 @@ const VIDEO_CONTAINER_SELECTORS = [
   '.yt-lockup-view-model',
   'ytm-shorts-lockup-view-model', // Shorts on home shelves
   'ytd-video-renderer[is-history]', // Single Shorts layout in History
+  'ytd-rich-grid-media[lockup="true"]', // Sponsored/members-only rich grid cards
 ];
 
 // Known clickable anchors inside supported containers
 const VIDEO_ANCHOR_SELECTOR = [
-  // Default lockup cards + History single-Shorts
-  ...VIDEO_CONTAINER_SELECTORS.map((selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail, ${selector} a.yt-lockup-metadata-view-model__title, ${selector} a#video-title`),
+  // Default lockup cards + History single-Shorts + rich-grid media
+  ...VIDEO_CONTAINER_SELECTORS.map(
+    (selector) => `${selector} a.yt-lockup-view-model__content-image, ${selector} a#thumbnail, ${selector} a.yt-lockup-metadata-view-model__title, ${selector} a#video-title, ${selector} a#video-title-link`,
+  ),
   // Shorts lockup
   'ytm-shorts-lockup-view-model a.reel-item-endpoint',
   'ytm-shorts-lockup-view-model a.shortsLockupViewModelHostEndpoint',
