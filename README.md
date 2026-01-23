@@ -2,7 +2,9 @@
 
 A lightweight Chrome extension that adds a **Not Interested** button to every YouTube thumbnail, giving you full control over the videos that appear in your feed.
 
-Link: https://chromewebstore.google.com/detail/youtube-quick-not-interes/edlpihldeeedcfnalnccnpcfpodogcmg?hl=en-US
+Store links (pending review):
+- Microsoft Edge Add-ons: [TBD]
+- Firefox Add-ons (AMO): [TBD]
 ---
 
 ## Table of Contents
@@ -30,6 +32,12 @@ Link: https://chromewebstore.google.com/detail/youtube-quick-not-interes/edlpihl
 ---
 
 ## Installation
+
+### Install in Chrome from Microsoft Edge Add-ons
+
+1. Open the Edge Add-ons listing in Chrome (link above).  
+2. Click **Get** (or **Add to Chrome**).  
+3. If prompted, allow installation from other stores.  
 
 ### Developer Mode
 
