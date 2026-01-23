@@ -1,5 +1,4 @@
-// Dismissal reason preference
-let preferredReason = 'first';
+// Dismissal reason (auto-select first if YouTube shows a choice)
 let lastActiveAnchor = null;
 let shortcutsBound = false;
 
@@ -499,16 +498,7 @@ function applyShortsRemovedVisual(container) {
 
 function findDismissalReason() {
   const reasons = document.querySelectorAll('.dismissal-view-style-compact-tall .yt-core-attributed-string');
-  let selectedReason = null;
-  if (preferredReason === 'first') {
-    selectedReason = reasons.length > 0 ? reasons[0] : null;
-  } else if (preferredReason === 'watched') {
-    selectedReason = Array.from(reasons).find((r) => r.textContent.trim() === "I've already watched the video");
-    if (!selectedReason) selectedReason = reasons[0];
-  } else if (preferredReason === 'dont_like') {
-    selectedReason = Array.from(reasons).find((r) => r.textContent.trim() === "I don't like the video");
-    if (!selectedReason) selectedReason = reasons[0];
-  }
+  const selectedReason = reasons.length > 0 ? reasons[0] : null;
   if (selectedReason) {
     return selectedReason.closest('[role="radio"], [tabindex]');
   }
@@ -583,11 +573,6 @@ function init() {
     document.addEventListener('keydown', handleShortcut, true);
     shortcutsBound = true;
   }
-
-  chrome.storage.sync.get(['dismissalReason'], (result) => {
-    preferredReason = result.dismissalReason || 'first';
-    console.log('Loaded preferred reason:', preferredReason);
-  });
 
   ensureSpriteInjected();
   addButtonsToVideos();

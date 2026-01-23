@@ -7,7 +7,7 @@
   "author": "Abe-Ben",
   "homepage_url": "https://github.com/firstever/youtube-not-interested",
   "minimum_chrome_version": "88",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab"],
   "host_permissions": ["https://www.youtube.com/*"],
   "content_scripts": [
     {
@@ -21,9 +21,5 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  },
-  "options_ui": {
-    "page": "options.html",
-    "open_in_tab": false
   }
 }
