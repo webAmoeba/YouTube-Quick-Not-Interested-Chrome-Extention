@@ -366,12 +366,9 @@ async function closeMenu(menuBtn) {
 
 async function handleNotInterested(anchor) {
   const videoContainer = getVideoContainer(anchor);
-  console.log('videoContainer:', videoContainer);
   const menuBtn = getMenuButton(videoContainer);
-  console.log('menuBtn:', menuBtn);
 
   if (!menuBtn) {
-    console.log('No menu button found');
     return;
   }
 
@@ -379,38 +376,28 @@ async function handleNotInterested(anchor) {
     menuBtn.click();
 
     const menuItem = await waitForValue(() => findMenuItem(NOT_INTERESTED_VARIANTS));
-    console.log('notInterestedItem:', menuItem);
     if (!menuItem) {
-      console.log('No not interested item found');
       await closeMenu(menuBtn);
       return;
     }
 
     menuItem.click();
-    console.log('Not interested item clicked');
 
     const reasonElement = await waitForValue(findDismissalReason);
-    console.log('reasonElement:', reasonElement);
     if (!reasonElement) {
-      console.log('No dismissal reason found');
       await closeMenu(menuBtn);
       return;
     }
 
     reasonElement.click();
-    console.log('Reason selected');
 
     const submitBtn = await waitForValue(() => {
       const btn = findSubmitButton();
       return btn && !btn.disabled ? btn : null;
     }, {timeout: 1000});
-    console.log('submitBtn:', submitBtn);
 
     if (submitBtn) {
       submitBtn.click();
-      console.log('Submit clicked');
-    } else {
-      console.log('Submit button not found or disabled');
     }
 
     await closeMenu(menuBtn);
@@ -419,16 +406,12 @@ async function handleNotInterested(anchor) {
 
 async function handleDontRecommend(anchor) {
   if (!shouldShowDontRecommend(anchor)) {
-    console.log("Don't recommend is disabled for this card/page");
     return;
   }
   const videoContainer = getVideoContainer(anchor);
-  console.log('videoContainer:', videoContainer);
   const menuBtn = getMenuButton(videoContainer);
-  console.log('menuBtn:', menuBtn);
 
   if (!menuBtn) {
-    console.log('No menu button found');
     return;
   }
 
@@ -436,15 +419,12 @@ async function handleDontRecommend(anchor) {
     menuBtn.click();
 
     const menuItem = await waitForValue(() => findMenuItem(DONT_RECOMMEND_VARIANTS));
-    console.log('dontRecommendItem:', menuItem);
     if (!menuItem) {
-      console.log("No don't recommend item found");
       await closeMenu(menuBtn);
       return;
     }
 
     menuItem.click();
-    console.log("Don't recommend item clicked");
 
     await closeMenu(menuBtn);
   });
@@ -452,12 +432,9 @@ async function handleDontRecommend(anchor) {
 
 async function handleRemoveFromHistory(anchor) {
   const videoContainer = getVideoContainer(anchor);
-  console.log('videoContainer:', videoContainer);
   const menuBtn = getMenuButton(videoContainer);
-  console.log('menuBtn:', menuBtn);
 
   if (!menuBtn) {
-    console.log('No menu button found');
     return;
   }
 
@@ -465,15 +442,12 @@ async function handleRemoveFromHistory(anchor) {
     menuBtn.click();
 
     const menuItem = await waitForValue(() => findMenuItem(REMOVE_FROM_HISTORY_VARIANTS));
-    console.log('removeFromHistoryItem:', menuItem);
     if (!menuItem) {
-      console.log('No remove-from-history item found');
       await closeMenu(menuBtn);
       return;
     }
 
     menuItem.click();
-    console.log('Remove from history clicked');
 
     // Visually mark Shorts item as removed in History
     applyShortsRemovedVisual(videoContainer);
@@ -530,14 +504,12 @@ function findMenuItem(variants) {
 
   const items = dropdown.querySelectorAll(selectors);
   const normalizedVariants = variants.map(normalizeText);
-  console.log('menu items found:', items.length);
   for (const item of items) {
     const textEl = item.querySelector('.yt-core-attributed-string') ||
       item.querySelector('yt-formatted-string') ||
       item.querySelector('.yt-spec-button-shape-next__text span') ||
       item;
     const text = normalizeText(textEl ? textEl.textContent : '');
-    console.log('Menu item text:', text || '(empty)');
     if (text && normalizedVariants.includes(text)) {
       return item.querySelector('tp-yt-paper-item') || item.querySelector('a.yt-simple-endpoint') || item;
     }

@@ -7,7 +7,7 @@
   "author": "Abe-Ben",
   "homepage_url": "https://github.com/firstever/youtube-not-interested",
   "minimum_chrome_version": "88",
-  "permissions": ["activeTab"],
+  "permissions": [],
   "host_permissions": ["https://www.youtube.com/*"],
   "content_scripts": [
     {
