@@ -9,11 +9,9 @@ Link: https://chromewebstore.google.com/detail/youtube-quick-not-interes/edlpihl
 1. [Features](#features)  
 2. [Installation](#installation)  
 3. [Usage](#usage)  
-4. [Permissions](#permissions)  
-5. [Development](#development)  
-6. [Contributing](#contributing)  
-7. [Changelog](#changelog)  
-8. [License](#license)
+4. [Development](#development)  
+5. [Contributing](#contributing)  
+6. [License](#license)
 
 ---
 
@@ -21,10 +19,13 @@ Link: https://chromewebstore.google.com/detail/youtube-quick-not-interes/edlpihl
 
 | Feature                | Details                                                                                         |
 |------------------------|-------------------------------------------------------------------------------------------------|
-| One-click dismissal    | Hover over any thumbnail and click the red **×** to hide the video instantly.                   |
-| Infinite-scroll ready  | Buttons attach to all thumbnails, including those loaded dynamically as you scroll.             |
+| Two quick actions      | **Not interested** and **Don't recommend channel** buttons appear on each thumbnail.           |
+| Native-looking icons   | Uses the same symbols as YouTube's own menu actions.                                             |
+| Consistent placement   | Buttons sit in the top-left corner of each card.                                                |
+| Hotkeys                | Alt+W - Not interested (History: remove), Alt+Q - Don't recommend channel.                      |
+| History support        | On History page, the primary action removes the video from watch history.                       |
+| Infinite-scroll ready  | Buttons attach to thumbnails loaded dynamically as you scroll.                                  |
 | Resilient to UI changes| A mutation observer re-attaches buttons if YouTube updates its markup.                          |
-| Privacy-first design   | Requires only minimal permissions and never collects or transmits personal data.                |
 
 ---
 
@@ -43,37 +44,25 @@ Link: https://chromewebstore.google.com/detail/youtube-quick-not-interes/edlpihl
 ## Usage
 
 1. Go to **YouTube**.  
-2. Hover over any video thumbnail— a red **×** appears in the top-right corner.  
-3. Click the **×** to mark the video as *Not Interested*.  
-
----
-
-## Permissions
-
-| Permission                  | Purpose                                                     |
-|-----------------------------|-------------------------------------------------------------|
-| `activeTab`                 | Inject content scripts into the current YouTube tab.        |
-| `https://www.youtube.com/*` | Run on all YouTube pages to add the dismissal buttons.      |
-
-No analytics, tracking, or external requests are performed.
+2. Hover a video card - two buttons appear in the top-left corner.  
+3. Click the action you want:
+   - **Not interested** - hide the video and train recommendations.  
+   - **Don't recommend channel** - stop recommendations from this channel.  
+   - On **History** page the primary button removes the video from history.  
+4. Hotkeys:
+   - **Alt+W** - Not interested (History: remove)  
+   - **Alt+Q** - Don't recommend channel
 
 ---
 
 ## Development
 
-\`\`\`bash
-# Install dependencies (if a build tool is added in the future)
-npm install
-
-# Build scripts or assets (not required for vanilla JS/CSS)
-npm run build
-\`\`\`
-
-- Source files live in `src/`.  
+- No build step or dependencies.  
+- Source files live in the project root.  
 - Content script: `content.js`  
 - Stylesheet: `styles.css`
 
-Pull requests are welcome—see [Contributing](#contributing).
+Pull requests are welcome - see [Contributing](#contributing).
 
 ---
 
@@ -81,22 +70,13 @@ Pull requests are welcome—see [Contributing](#contributing).
 
 1. Fork the repo.  
 2. Create a feature branch:  
-   \`\`\`bash
+   ```bash
    git checkout -b feature/my-feature
-   \`\`\`  
+   ```  
 3. Commit your changes with clear messages.  
 4. Push to your branch and open a pull request.  
 
 Please match the existing code style and include relevant tests or demo notes.
-
----
-
-## Changelog
-
-| Version | Date       | Notes                                                         |
-|---------|------------|---------------------------------------------------------------|
-| 1.0.1   | 2025-10-30 | Added Options page, improved error handling, manifest updates |
-| 1.0.0   | 2025-10-28 | Initial release with one-click dismissal                      |
 
 ---
 
